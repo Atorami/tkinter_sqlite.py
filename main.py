@@ -31,9 +31,9 @@ conn.commit()
 def save_task():
     # Get all entry data
     task_name = task_name_entry.get().strip()
-    status = status_var.get().strip()
-    deadline_date = deadline_entry.get().strip()
-    deadline_time = deadline_entry_time.get().strip()
+    status = status_var.get()
+    deadline_date = cal.get_date().strip()
+    deadline_time = set_time().strip()
 
     # Check if all fields are filled
     if not (task_name and status and deadline_date and deadline_time):
@@ -69,8 +69,6 @@ def load_tasks():
         treeview.insert("", "end", values=task)
 
 
-
-
 # Functions
 
 
@@ -99,40 +97,11 @@ def update_time():
     right_frame.after(1000, update_time)
 
 
-def open_calendar():
-    cal = Calendar(create_task_frame, date_pattern='dd/MM/yyyy', font="Arial 14", selectbackground='gray80', locale='en_US')
-    cal.pack(fill='both', expand=True)
-
-    def set_date():
-        deadline_entry.delete(0, 'end')
-        deadline_entry.insert(0, cal.get_date())
-        cal.pack_forget()
-        ok_button.pack_forget()
-
-    ok_button = ttk.Button(create_task_frame, text="OK", command=set_date)
-    ok_button.pack(fill=tk.X)
-
-
-def open_timepicker():
-    time_picker = SpinTimePickerModern(create_task_frame)
-    time_picker.addAll(constants.HOURS24)
-    time_picker.configureAll(bg="#50C878", fg="#ffffff", height=3, width=15, font=("Arial", 24), hoverbg="#3CB371",
-                             hovercolor="#ffffff", clickedbg="#2E8B57", clickedcolor="#ffffff")
-    time_picker.configure_separator(bg="#50C878", fg="#ffffff", font=("Arial", 50))
-
-    time_picker.pack(expand=True)
-
-    def set_time():
-        deadline_entry_time.delete(0, 'end')
-        hours, minutes = time_picker.time()[0], time_picker.time()[1]
-        formatted_time = "{:02d}:{:02d}".format(hours, minutes)
-        deadline_entry_time.insert(0, formatted_time)
-        time_picker.pack_forget()
-        time_ok_button.pack_forget()
-
-    time_ok_button = ttk.Button(create_task_frame, text="OK", command=set_time)
-    time_ok_button.pack(fill="both")
-
+def set_time():
+    hours, minutes = time_picker.time()[0], time_picker.time()[1]
+    formatted_time = "{:02d}:{:02d}".format(hours, minutes)
+    time_picker.pack_forget()
+    return formatted_time
 
 
 
@@ -252,6 +221,7 @@ create_task_title_label = tk.Label(create_task_frame_title, text="Create task", 
 create_task_title_label.pack(padx=15, pady=15, anchor=tk.W)
 create_task_frame_title.pack(fill=tk.X)
 
+
 # Right Task Entry for Task Name
 task_name_frame = tk.Frame(create_task_frame, background="white")
 task_name_label = tk.Label(task_name_frame, text="Task Name:", font=("Helvetica", 12), bg="white")
@@ -259,38 +229,44 @@ task_name_label.grid(row=0, column=0, padx=10, pady=10)
 
 task_name_entry = ttk.Entry(task_name_frame, width=108, font=("Helvetica", 12))
 task_name_entry.grid(row=1, column=0, padx=10, sticky=tk.W)
-task_name_frame.pack(fill=tk.X)
-
-# Deadline Frame
-
-deadline_frame = tk.Frame(create_task_frame, background="white")
-deadline_label = tk.Label(deadline_frame, text="Deadline:", font=("Helvetica", 12), bg="white")
-deadline_label.grid(row=0, column=0, padx=10, pady=10)
-
-deadline_entry = ttk.Entry(deadline_frame, width=20, font=("Helvetica", 12))
-deadline_entry.grid(row=1, column=0, padx=10, pady=10)
-
-deadline_calendar_button = ttk.Button(deadline_frame, text="Open Calendar", command=open_calendar)
-deadline_calendar_button.grid(row=1, column=1, padx=10, pady=10)
-
-deadline_entry_time = ttk.Entry(deadline_frame, width=20, font=("Helvetica", 12))
-deadline_entry_time.grid(row=2, column=0, padx=10, pady=10)
-
-deadline_entry_time_button = ttk.Button(deadline_frame, text="Open Timepicker", command=open_timepicker)
-deadline_entry_time_button.grid(row=2, column=1, padx=10, pady=10)
-
-deadline_frame.pack(fill=tk.X)
+task_name_frame.pack()
 
 # Status Frame
-status_frame = tk.Frame(create_task_frame, background="white")
-status_label = tk.Label(status_frame, text="Status:", font=("Helvetica", 12), bg="white")
-status_label.grid(row=0, column=0, padx=10, pady=10)
-
 status_var = tk.StringVar()
-status_dropdown = ttk.Combobox(status_frame, textvariable=status_var, values=["To Do", "In Progress", "Completed"], width=20, font=("Helvetica", 12))
-status_dropdown.grid(row=1, column=0, padx=10, pady=10)
-status_dropdown.current(0)
-status_frame.pack(fill=tk.X)
+status_frame = tk.Frame(create_task_frame, bg="#fafafa")
+status_frame_label = tk.Label(status_frame, text="Choose a task status:", font=("Helvetica", 12), bg="#fafafa")
+status_frame_label.grid(row=1, column=0, padx=10, pady=10)
+R1 = ttk.Radiobutton(status_frame, text="Need to do", value='Need to do', variable=status_var)
+R2 = ttk.Radiobutton(status_frame, text="Already done", value='Already done', variable=status_var)
+R3 = ttk.Radiobutton(status_frame, text="In process", value='In process', variable=status_var)
+R4 = ttk.Radiobutton(status_frame, text="Expired", value='Expired', variable=status_var)
+R1.grid(row=1, column=1, padx=10, pady=10, sticky='ws')
+R2.grid(row=1, column=2, padx=10, pady=10, sticky='w')
+R3.grid(row=1, column=3, padx=10, pady=10, sticky='w')
+R4.grid(row=1, column=4, padx=10, pady=10, sticky='w')
+status_frame.pack(fill=tk.BOTH, expand=True, pady=(50, 0), padx=10)
+
+# Deadline Frame
+deadline_frame = tk.Frame(create_task_frame, bg="white", pady=10)
+deadline_label = tk.Label(deadline_frame, text="Set a deadline time and date:", font=("Helvetica", 12), bg="white")
+deadline_label.grid(row=0, column=0, padx=10, pady=10, sticky='w')
+
+# Time picker
+time_picker = SpinTimePickerModern(deadline_frame)
+time_picker_label = tk.Label(deadline_frame, text="Set a time: ", font=("Helvetica", 12), bg="white")
+time_picker_label.grid(row=1, column=0, padx=(10, 0), pady=10, sticky='w')
+time_picker.addAll(constants.HOURS24)
+time_picker.configureAll(bg="white", fg="#333333", font=("Arial", 12), hoverbg="#CCCCCC",
+                         hovercolor="#333333", clickedbg="#50C878", clickedcolor="white")
+time_picker.grid(row=1, column=1, columnspan=4, pady=10)
+deadline_frame.pack(fill=tk.BOTH, expand=True)
+
+# Calendar
+cal = Calendar(create_task_frame, date_pattern='dd/MM/yyyy', font="Arial 12", day_selectbackground='#50C878',
+               locale='en_US')
+cal_label = tk.Label(create_task_frame, text="Choose a date:", font=("Helvetica", 12), bg="white")
+cal_label.pack(padx=10, pady=10, anchor=tk.W)
+cal.pack(fill=tk.BOTH, expand=True, padx=10, pady=0)
 
 # Buttons Frame
 
@@ -303,9 +279,10 @@ back_button = ttk.Button(buttons_frame, text="Back", width=20, command=show_task
 back_button.grid(row=0, column=0, padx=10, pady=10)
 create_button = ttk.Button(buttons_frame, text="Create", width=20, style="TButton", command=save_task)
 create_button.grid(row=0, column=1, padx=10, pady=10)
-buttons_frame.pack(fill=tk.X)
+buttons_frame.pack(fill=tk.BOTH, expand=True, pady=(140, 10))
 
 
+create_task_frame.pack(fill=tk.BOTH, expand=True)
 
 
 
