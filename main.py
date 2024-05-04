@@ -11,8 +11,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 
 from PIL import ImageTk, Image
-from datetime import datetime
-
+from datetime import datetime, date
 
 # SQLite and Functions
 conn = sqlite3.connect('tasks.db')
@@ -32,7 +31,7 @@ def save_task():
     # Get all entry data
     task_name = task_name_entry.get().strip()
     status = status_var.get()
-    deadline_date = cal.get_date().strip()
+    deadline_date = cal_entry.get()
     deadline_time = set_time().strip()
 
     # Check if all fields are filled
@@ -58,16 +57,20 @@ def save_task():
 
 
 def load_tasks():
-    # Clear prev data
+    # Clear previous data
     for row in treeview.get_children():
         treeview.delete(row)
 
     c.execute("SELECT * FROM tasks")
     tasks = c.fetchall()
 
-    for task in tasks:
-        treeview.insert("", "end", values=task)
+    for i, task in enumerate(tasks, start=1):
+        row_id = treeview.insert("", "end", values=task)
+        treeview.tag_bind(task, '<Motion>',on_treeview_hover)
 
+# def get_task_value(task):
+#     curItem = treeview.focus()
+#     print(treeview.item(curItem))
 
 # Functions
 
@@ -90,6 +93,13 @@ def task_counter():
     stat_fig1_label.config(text=f"Tasks: {task_number}")
 
 
+def on_treeview_hover(event):
+    tree = event.widget
+    item = tree.identify_row(event.y)
+    tree.tk.call(tree, "tag", "remove", "highlight")
+    tree.tk.call(tree, "tag", "add", "highlight", item)
+    print(treeview(tree.focus()))
+
 def update_time():
     current_time = datetime.now().strftime('%H:%M')
     current_data = datetime.now().strftime('%A, %B %d, %Y')
@@ -104,6 +114,17 @@ def set_time():
     return formatted_time
 
 
+def show_picked_date(event=None):
+    date_str = cal.get_date()
+    cal_entry.delete(0, tk.END)
+    cal_entry.insert(tk.END, date_str)
+    selected_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+    current_date = date.today()
+
+    if selected_date < current_date:
+        cal_entry.config(fg="red")
+    else:
+        cal_entry.config(fg="black")
 
 # APP
 
@@ -145,7 +166,7 @@ right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
 # Right frame title
 right_frame_title = tk.Frame(right_frame, background="white")
-title_label = tk.Label(right_frame_title, text="Task list", font=("Helvetica", 20), bg="white", fg="#50C878")
+title_label = tk.Label(right_frame_title, text="Task list", font=("Helvetica", 20, 'bold'), bg="white", fg="#50C878")
 title_label.pack(padx=15, pady=15, anchor=tk.W)
 right_frame_title.pack(fill=tk.X)
 
@@ -163,19 +184,23 @@ stat_fig_frame.pack(fill=tk.X)
 
 # Search bar and filters
 search_bar_frame = tk.Frame(right_frame, background="white")
-search_bar = ttk.Entry(search_bar_frame, width=34, font=18, background="white")
+search_bar = ttk.Entry(search_bar_frame, width=30, font=18, background="white")
 search_bar.insert(tk.END, "Find a task")
-search_bar.grid(row=2, column=0, pady=10, padx=15, sticky=tk.W)
+search_bar.grid(row=2, column=0, pady=10, padx=(15, 0), sticky=tk.W)
 
-filter_bar = ttk.Combobox(search_bar_frame, values=("Done", "Not done"))
-filter_bar.grid(row=2, column=1, padx=15, pady=10, sticky=tk.W)
+filter_bar = ttk.Combobox(search_bar_frame, values=("Need to do", "Already done", "In process", "Expired"))
+filter_bar_label = tk.Label(search_bar_frame, text="Filter by: ", background="white")
+filter_bar_label.grid(row=2, column=1, padx=(10, 0), pady=20, sticky=tk.W)
+filter_bar.grid(row=2, column=2, pady=10, sticky=tk.W)
 
-sort_bar = ttk.Combobox(search_bar_frame, values=("Id", "Alphabetic", "Status", "Date"))
-sort_bar.grid(row=2, column=2, padx=15, pady=10, sticky=tk.W)
+sort_bar = ttk.Combobox(search_bar_frame, values=("Id", "Alphabetic", "Status", "Date: Created", "Date: Deadline"))
+sort_bar_label = tk.Label(search_bar_frame, text="Sort by: ", background="white")
+sort_bar_label.grid(row=2, column=3, padx=(10, 0), pady=20, sticky=tk.W)
+sort_bar.grid(row=2, column=4, pady=10, sticky=tk.W)
 
 update_btn_img = ImageTk.PhotoImage(Image.open("update.png").resize((20, 20), Image.LANCZOS))
 update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=lambda: (load_tasks(), task_counter()))
-update_btn.grid(row=2, column=3, padx=15, pady=10, sticky=tk.W)
+update_btn.grid(row=2, column=5, padx=15, pady=10, sticky=tk.W)
 search_bar_frame.pack(fill=tk.X)
 
 # Treeview tasks
@@ -188,23 +213,27 @@ treeview = ttk.Treeview(treeview_frame, columns=("ID", "Task", "Created", "Deadl
 treeview.heading("ID", text="ID")
 treeview.column("ID", width=50, anchor=tk.CENTER)
 treeview.heading("Task", text="Task")
-treeview.column("Task", width=400, anchor=tk.CENTER)
+treeview.column("Task", width=505, anchor=tk.CENTER)
 treeview.heading("Created", text="Created")
 treeview.column("Created", width=150, anchor=tk.CENTER)
 treeview.heading("Deadline date", text="Deadline date")
 treeview.column("Deadline date", width=150, anchor=tk.CENTER)
 treeview.heading("Status", text="Status")
 treeview.column("Status", width=100, anchor=tk.CENTER)
+treeview.tag_configure('highlight', background='lightblue')
+treeview.bind("<Motion>", on_treeview_hover)
+treeview.bind('<ButtonRelease-1>', get_task_value)
 
 # Data from db
 load_tasks()
+
 task_counter()
-treeview.grid(row=3, column=0, columnspan=4, padx=15, pady=20)
+treeview.grid(row=3, column=0, columnspan=4, padx=(15, 0), pady=20)
 
 # Treeview scrollbar
 scrollbar = tk.Scrollbar(treeview_frame, orient="vertical", command=treeview.yview)
 treeview.configure(yscrollcommand=scrollbar.set)
-scrollbar.grid(row=3, column=4, sticky="ns")
+scrollbar.grid(row=3, column=4, sticky="ns", pady=20)
 treeview_frame.pack(fill=tk.BOTH, expand=True)
 
 update_time()
@@ -262,11 +291,15 @@ time_picker.grid(row=1, column=1, columnspan=4, pady=10)
 deadline_frame.pack(fill=tk.BOTH, expand=True)
 
 # Calendar
-cal = Calendar(create_task_frame, date_pattern='dd/MM/yyyy', font="Arial 12", day_selectbackground='#50C878',
-               locale='en_US')
+cal = Calendar(create_task_frame, date_pattern='dd/MM/yyyy', font="Arial 12", cursor='hand2', locale='en_US')
+cal.config(background="#50C878", selectbackground="#fafafa", selectforeground="green")
+cal.bind("<<CalendarSelected>>", show_picked_date)
+cal_entry = tk.Entry(cal, width=9, font=("Helvetica", 12),)
 cal_label = tk.Label(create_task_frame, text="Choose a date:", font=("Helvetica", 12), bg="white")
 cal_label.pack(padx=10, pady=10, anchor=tk.W)
-cal.pack(fill=tk.BOTH, expand=True, padx=10, pady=0)
+cal_entry.pack(padx=10, pady=10, anchor=tk.W)
+cal.pack(fill=tk.BOTH, padx=10, pady=0)
+
 
 # Buttons Frame
 
@@ -279,7 +312,7 @@ back_button = ttk.Button(buttons_frame, text="Back", width=20, command=show_task
 back_button.grid(row=0, column=0, padx=10, pady=10)
 create_button = ttk.Button(buttons_frame, text="Create", width=20, style="TButton", command=save_task)
 create_button.grid(row=0, column=1, padx=10, pady=10)
-buttons_frame.pack(fill=tk.BOTH, expand=True, pady=(140, 10))
+buttons_frame.pack(fill=tk.BOTH, expand=True, pady=(100, 10))
 
 
 create_task_frame.pack(fill=tk.BOTH, expand=True)
