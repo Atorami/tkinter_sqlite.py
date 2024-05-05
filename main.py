@@ -13,6 +13,17 @@ from tkinter import messagebox
 from PIL import ImageTk, Image
 from datetime import datetime, date
 
+
+# Classes
+
+class Task:
+    def __init__(self, task_id, task_name, created_date, deadline_date, status):
+        self.task_id = task_id
+        self.task_name = task_name
+        self.created_date = created_date
+        self.deadline_date = deadline_date
+        self.status = status
+
 # SQLite and Functions
 conn = sqlite3.connect('tasks.db')
 c = conn.cursor()
@@ -66,13 +77,100 @@ def load_tasks():
 
     for i, task in enumerate(tasks, start=1):
         row_id = treeview.insert("", "end", values=task)
-        treeview.tag_bind(task, '<Motion>',on_treeview_hover)
+        treeview.tag_bind(task, '<Motion>', on_treeview_hover)
+        treeview.tag_bind(task, '<Double-1>', on_treeview_click)
 
-# def get_task_value(task):
-#     curItem = treeview.focus()
-#     print(treeview.item(curItem))
+
+def on_treeview_click(event):
+    tree = event.widget
+    item = tree.identify_row(event.y)
+    task = tree.item(item)['values']
+    show_task_info(task)
+    # print(task)
+
+
+def show_task_info(task):
+    info_box = tk.Toplevel()
+    info_box.title("Task Information")
+    info_box.geometry('530x300')
+    info_box.resizable(False, False)
+
+    # Task info functions
+    def back_to_task_list():
+        show_task_list()
+        info_box.destroy()
+
+    def save_task():
+        task_name = current_task_name.get().strip()
+        status = current_task_status.get()
+        deadline_date = current_task_deadline_date.get()
+
+        if not (task_name and status and deadline_date):
+            showinfo(title='Error', message='Please fill in all fields.')
+            return
+
+        c.execute('''UPDATE tasks 
+                     SET task_name=?, deadline_date=?, status=? 
+                     WHERE id=?''', (task_name, deadline_date, status, current_task.task_id))
+        conn.commit()
+
+        showinfo(title='Success', message='Task updated successfully!')
+        back_to_task_list()
+
+    def delete_task():
+        c.execute("DELETE FROM tasks WHERE id=?", (current_task.task_id,))
+        conn.commit()
+        showinfo(title='Success', message='Task deleted successfully!')
+        back_to_task_list()
+
+    # Right Frame position
+    right_frame.update_idletasks()
+    right_frame_width = right_frame.winfo_width()
+    right_frame_height = right_frame.winfo_height()
+    right_frame_x = right_frame.winfo_rootx()
+    right_frame_y = right_frame.winfo_rooty()
+
+    # Set center for info_box
+    info_box_width = info_box.winfo_width()
+    info_box_height = info_box.winfo_height()
+    x = right_frame_x + (right_frame_width - info_box_width) // 2
+    y = right_frame_y + (right_frame_height - info_box_height) // 2
+    info_box.geometry('+{}+{}'.format(x, y))
+
+    # Get info and make obj
+    current_task = Task(task[0], task[1], task[2], task[3], task[4])
+    # Make interface
+    ttk.Label(info_box, text='Task ID: ', anchor="e").grid(column=0, row=0, pady=20, padx=(10, 5), sticky=tk.E)
+    ttk.Label(info_box, text=current_task.task_id, anchor="w").grid(column=1, row=0, sticky='w')
+
+    ttk.Label(info_box, text='Task Name: ', anchor="e").grid(column=0, row=1, pady=5, padx=(10, 5), sticky=tk.E)
+    current_task_name = ttk.Entry(info_box)
+    current_task_name.grid(column=1, row=1, columnspan=4, sticky='ew')
+    current_task_name.insert(tk.END, current_task.task_name)
+
+    ttk.Label(info_box, text='Creation Date: ', anchor="e").grid(column=0, row=2, pady=5, padx=(10, 5), sticky=tk.E)
+    current_task_creation_date = ttk.Entry(info_box)
+    current_task_creation_date.grid(column=1, row=2, sticky='ew')
+    current_task_creation_date.insert(tk.END, current_task.created_date)
+
+    ttk.Label(info_box, text='Deadline Date: ', anchor="e").grid(column=3, row=2,pady=5, padx=5, sticky=tk.E)
+    current_task_deadline_date = ttk.Entry(info_box)
+    current_task_deadline_date.grid(column=4, row=2, sticky='ew')
+    current_task_deadline_date.insert(tk.END, current_task.deadline_date)
+
+    ttk.Label(info_box, text='Status: ', anchor="e").grid(column=0, row=3, sticky=tk.E)
+    current_task_status = ttk.Combobox(info_box, values=("Need to do", "Already done", "In process", "Expired"))
+    current_task_status.grid(column=1, row=3, sticky='ew')
+    current_task_status.insert(tk.END, current_task.status)
+
+    # Buttons
+    ttk.Button(info_box, text='Back', command=back_to_task_list).grid(column=0, row=4, pady=(100, 5), padx=10,sticky=tk.EW)
+    ttk.Button(info_box, text='Save task', command=save_task).grid(column=1, row=4, pady=(100, 5), sticky=tk.EW)
+    ttk.Button(info_box, text='Delete task', command=delete_task).grid(column=4, row=4, pady=(100, 5), sticky=tk.EW)
+
 
 # Functions
+
 
 
 def show_task_list():
@@ -98,7 +196,7 @@ def on_treeview_hover(event):
     item = tree.identify_row(event.y)
     tree.tk.call(tree, "tag", "remove", "highlight")
     tree.tk.call(tree, "tag", "add", "highlight", item)
-    print(treeview(tree.focus()))
+
 
 def update_time():
     current_time = datetime.now().strftime('%H:%M')
@@ -222,8 +320,7 @@ treeview.heading("Status", text="Status")
 treeview.column("Status", width=100, anchor=tk.CENTER)
 treeview.tag_configure('highlight', background='lightblue')
 treeview.bind("<Motion>", on_treeview_hover)
-treeview.bind('<ButtonRelease-1>', get_task_value)
-
+treeview.bind('<Double-1>', on_treeview_click)
 # Data from db
 load_tasks()
 
@@ -316,22 +413,6 @@ buttons_frame.pack(fill=tk.BOTH, expand=True, pady=(100, 10))
 
 
 create_task_frame.pack(fill=tk.BOTH, expand=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 sv_ttk.set_theme("light")
