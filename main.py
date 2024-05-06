@@ -205,7 +205,7 @@ def show_task_info(task):
     current_task_deadline_date.insert(tk.END, current_task.deadline_date)
 
     ttk.Label(info_box, text='Status: ', anchor="e").grid(column=0, row=3, sticky=tk.E)
-    current_task_status = ttk.Combobox(info_box, values=("Need to do", "Already done", "In process"))
+    current_task_status = ttk.Combobox(info_box, values=("Need to do", "Completed", "Processing"))
     current_task_status.grid(column=1, row=3, sticky='ew')
     current_task_status.insert(tk.END, current_task.status)
 
@@ -213,8 +213,6 @@ def show_task_info(task):
     ttk.Button(info_box, text='Back', command=back_to_task_list).grid(column=0, row=4, pady=(100, 5), padx=10,sticky=tk.EW)
     ttk.Button(info_box, text='Save task', command=save_task).grid(column=1, row=4, pady=(100, 5), sticky=tk.EW)
     ttk.Button(info_box, text='Delete task', command=delete_task).grid(column=4, row=4, pady=(100, 5), sticky=tk.EW)
-
-    task_done()
 
 
 # Functions
@@ -225,9 +223,64 @@ def show_task_list():
     create_task_frame.pack_forget()
 
 
+# def filter_tasks():
+#     detached_items = []
+#     selected_status = filter_bar.get()
+#     print(selected_status)
+#     if selected_status == "":
+#         load_tasks()
+#     else:
+#         for row in treeview.get_children():
+#             task_val = treeview.item(row)['values']
+#             row_index = event.widget.index(row)
+#             if task_val[4] != selected_status:
+#                 detached_items.append((row, row_index))
+#                 treeview.detach(row)
+#             else:
+#                 for drow, index in detached_items:
+#                     treeview.move(drow, '', row_index)
+#                 detached_items.clear()
+
+
 def show_task_creator():
     create_task_frame.pack(fill=tk.BOTH, expand=True)
     right_frame.pack_forget()
+
+
+# def sort_tasks():
+#     selected_sort = sort_bar.get()
+#     treeview_data = [(treeview.item(item)['values'], item) for item in treeview.get_children()]
+#
+#     if selected_sort == "Id":
+#         treeview_data.sort(key=lambda x: int(x[0][0]))
+#     elif selected_sort == "Alphabetic":
+#         treeview_data.sort(key=lambda x: x[0][1])
+#     elif selected_sort == "Status":
+#         treeview_data.sort(key=lambda x: x[0][4])
+#     elif selected_sort == "Date: Created":
+#         treeview_data.sort(key=lambda x: datetime.strptime(x[0][2], '%d/%m/%Y %H:%M'))
+#     elif selected_sort == "Date: Deadline":
+#         treeview_data.sort(key=lambda x: datetime.strptime(x[0][3], '%d/%m/%Y %H:%M'))
+#
+#     treeview.delete(*treeview.get_children())
+#     for task, item in treeview_data:
+#         treeview.insert("", "end", values=task)
+
+
+# def search_tasks():
+#     keyword = search_bar.get().lower()
+#     for row in treeview.get_children():
+#         task_val = treeview.item(row)['values']
+#         if keyword in task_val[1].lower():
+#             treeview.selection_set(row)
+#             treeview.focus(row)
+#         else:
+#             treeview.selection_remove(row)
+
+
+# Handler for search bar
+# def search_button_click(event=None):
+#     search_tasks()
 
 
 def task_counter():
@@ -354,20 +407,24 @@ search_bar_frame = tk.Frame(right_frame, background="white")
 search_bar = ttk.Entry(search_bar_frame, width=30, font=18, background="white")
 search_bar.insert(tk.END, "Find a task")
 search_bar.grid(row=2, column=0, pady=10, padx=(15, 0), sticky=tk.W)
+search_btn_img = ImageTk.PhotoImage(Image.open("search.png").resize((20, 20), Image.LANCZOS))
+# search_btn = ttk.Button(search_bar_frame, image=search_btn_img, command=search_button_click)
+# search_btn.grid(row=2, column=1, padx=5, pady=10, sticky=tk.W)
 
 filter_bar = ttk.Combobox(search_bar_frame, values=("Need to do", "Completed", "Processing", "Expired"))
 filter_bar_label = tk.Label(search_bar_frame, text="Filter by: ", background="white")
-filter_bar_label.grid(row=2, column=1, padx=(10, 0), pady=20, sticky=tk.W)
-filter_bar.grid(row=2, column=2, pady=10, sticky=tk.W)
+filter_bar_label.grid(row=2, column=2, padx=(10, 0), pady=20, sticky=tk.W)
+filter_bar.grid(row=2, column=3, pady=10, sticky=tk.W)
 
 sort_bar = ttk.Combobox(search_bar_frame, values=("Id", "Alphabetic", "Status", "Date: Created", "Date: Deadline"))
 sort_bar_label = tk.Label(search_bar_frame, text="Sort by: ", background="white")
-sort_bar_label.grid(row=2, column=3, padx=(10, 0), pady=20, sticky=tk.W)
-sort_bar.grid(row=2, column=4, pady=10, sticky=tk.W)
+sort_bar_label.grid(row=2, column=4, padx=(10, 0), pady=20, sticky=tk.W)
+sort_bar.grid(row=2, column=5, pady=10, sticky=tk.W)
 
 update_btn_img = ImageTk.PhotoImage(Image.open("update.png").resize((20, 20), Image.LANCZOS))
-update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=lambda: (load_tasks(), task_counter(), tasks_status()))
-update_btn.grid(row=2, column=5, padx=15, pady=10, sticky=tk.W)
+update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=lambda: (task_counter(), tasks_status()))
+# update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=lambda: (filter_tasks(), sort_tasks(), task_counter(), tasks_status()))
+update_btn.grid(row=2, column=6, padx=15, pady=10, sticky=tk.W)
 search_bar_frame.pack(fill=tk.X)
 
 # Treeview tasks
@@ -480,6 +537,6 @@ buttons_frame.pack(fill=tk.BOTH, expand=True, pady=(100, 10))
 
 create_task_frame.pack(fill=tk.BOTH, expand=True)
 
-
+# app.bind('<Return>', search_button_click)
 sv_ttk.set_theme("light")
 app.mainloop()
