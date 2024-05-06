@@ -101,27 +101,56 @@ def show_task_info(task):
         info_box.destroy()
 
     def save_task():
-        task_name = current_task_name.get().strip()
-        status = current_task_status.get()
-        deadline_date = current_task_deadline_date.get()
+        if done_var.get():
+            task_name = current_task_name.get().strip()
+            status = ('Task Completed')
+            deadline_date = current_task_deadline_date.get()
 
-        if not (task_name and status and deadline_date):
-            showinfo(title='Error', message='Please fill in all fields.')
-            return
+            if not (task_name and status and deadline_date):
+                showinfo(title='Error', message='Please fill in all fields.')
+                return
 
-        c.execute('''UPDATE tasks 
-                     SET task_name=?, deadline_date=?, status=? 
-                     WHERE id=?''', (task_name, deadline_date, status, current_task.task_id))
-        conn.commit()
+            c.execute('''UPDATE tasks 
+                                     SET task_name=?, deadline_date=?, status=? 
+                                     WHERE id=?''', (task_name, deadline_date, status, current_task.task_id))
+            conn.commit()
 
-        showinfo(title='Success', message='Task updated successfully!')
-        back_to_task_list()
+            showinfo(title='Success', message='Task Completed!')
+            back_to_task_list()
+        else:
+            task_name = current_task_name.get().strip()
+            status = current_task_status.get()
+            deadline_date = current_task_deadline_date.get()
+
+            if not (task_name and status and deadline_date):
+                showinfo(title='Error', message='Please fill in all fields.')
+                return
+
+            c.execute('''UPDATE tasks 
+                         SET task_name=?, deadline_date=?, status=? 
+                         WHERE id=?''', (task_name, deadline_date, status, current_task.task_id))
+            conn.commit()
+
+            showinfo(title='Success', message='Task updated successfully!')
+            back_to_task_list()
 
     def delete_task():
         c.execute("DELETE FROM tasks WHERE id=?", (current_task.task_id,))
         conn.commit()
         showinfo(title='Success', message='Task deleted successfully!')
         back_to_task_list()
+
+    def task_done():
+        if done_var.get():
+            current_task_name.config(state=tk.DISABLED)
+            current_task_status.config(state=tk.DISABLED)
+            current_task_deadline_date.config(state=tk.DISABLED)
+            current_task_creation_date.config(state=tk.DISABLED)
+        else:
+            current_task_name.config(state=tk.NORMAL)
+            current_task_status.config(state=tk.NORMAL)
+            current_task_deadline_date.config(state=tk.NORMAL)
+            current_task_creation_date.config(state=tk.NORMAL)
 
     # Right Frame position
     right_frame.update_idletasks()
@@ -139,9 +168,17 @@ def show_task_info(task):
 
     # Get info and make obj
     current_task = Task(task[0], task[1], task[2], task[3], task[4])
+
+    # Chekbox variable
+
+    done_var = tk.BooleanVar()
+    done_var.set(False)
+
     # Make interface
     ttk.Label(info_box, text='Task ID: ', anchor="e").grid(column=0, row=0, pady=20, padx=(10, 5), sticky=tk.E)
     ttk.Label(info_box, text=current_task.task_id, anchor="w").grid(column=1, row=0, sticky='w')
+
+    ttk.Checkbutton(info_box, text="Task Completed", command=task_done, variable=done_var).grid(column=4, row=0, sticky=tk.E)
 
     ttk.Label(info_box, text='Task Name: ', anchor="e").grid(column=0, row=1, pady=5, padx=(10, 5), sticky=tk.E)
     current_task_name = ttk.Entry(info_box)
@@ -168,9 +205,10 @@ def show_task_info(task):
     ttk.Button(info_box, text='Save task', command=save_task).grid(column=1, row=4, pady=(100, 5), sticky=tk.EW)
     ttk.Button(info_box, text='Delete task', command=delete_task).grid(column=4, row=4, pady=(100, 5), sticky=tk.EW)
 
+    task_done()
+
 
 # Functions
-
 
 
 def show_task_list():
