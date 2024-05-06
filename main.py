@@ -75,11 +75,20 @@ def load_tasks():
     c.execute("SELECT * FROM tasks")
     tasks = c.fetchall()
 
-    for i, task in enumerate(tasks, start=1):
-        row_id = treeview.insert("", "end", values=task)
-        treeview.tag_bind(task, '<Motion>', on_treeview_hover)
-        treeview.tag_bind(task, '<Double-1>', on_treeview_click)
+    for task in tasks:
+        curr_date = datetime.now().replace(second=0, microsecond=0)
+        deadline_date = datetime.strptime(task[3], '%d/%m/%Y %H:%M')
+        if curr_date > deadline_date:
+            task = list(task)
+            task[4] = "Expired"
+            task = tuple(task)
+            treeview.insert("", "end", values=task, tags=("expired",))
+        else:
+            treeview.insert("", "end", values=task)
 
+    treeview.tag_configure("expired", foreground="red")
+    treeview.bind("<Motion>", on_treeview_hover)
+    treeview.bind("<Double-1>", on_treeview_click)
 
 def on_treeview_click(event):
     tree = event.widget
@@ -196,7 +205,7 @@ def show_task_info(task):
     current_task_deadline_date.insert(tk.END, current_task.deadline_date)
 
     ttk.Label(info_box, text='Status: ', anchor="e").grid(column=0, row=3, sticky=tk.E)
-    current_task_status = ttk.Combobox(info_box, values=("Need to do", "Already done", "In process", "Expired"))
+    current_task_status = ttk.Combobox(info_box, values=("Need to do", "Already done", "In process"))
     current_task_status.grid(column=1, row=3, sticky='ew')
     current_task_status.insert(tk.END, current_task.status)
 
