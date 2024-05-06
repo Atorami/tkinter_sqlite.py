@@ -90,6 +90,7 @@ def load_tasks():
     treeview.bind("<Motion>", on_treeview_hover)
     treeview.bind("<Double-1>", on_treeview_click)
 
+
 def on_treeview_click(event):
     tree = event.widget
     item = tree.identify_row(event.y)
@@ -112,7 +113,7 @@ def show_task_info(task):
     def save_task():
         if done_var.get():
             task_name = current_task_name.get().strip()
-            status = ('Task Completed')
+            status = 'Completed'
             deadline_date = current_task_deadline_date.get()
 
             if not (task_name and status and deadline_date):
@@ -179,7 +180,6 @@ def show_task_info(task):
     current_task = Task(task[0], task[1], task[2], task[3], task[4])
 
     # Chekbox variable
-
     done_var = tk.BooleanVar()
     done_var.set(False)
 
@@ -245,6 +245,25 @@ def on_treeview_hover(event):
     tree.tk.call(tree, "tag", "add", "highlight", item)
 
 
+def tasks_status():
+    completed_tasks = 0
+    processing_tasks = 0
+    expired_tasks = 0
+
+    for row in treeview.get_children():
+        task_val = treeview.item(row)['values']
+        task_status = task_val[4]
+
+        if task_status == "Completed":
+            completed_tasks += 1
+        elif task_status == "Processing":
+            processing_tasks += 1
+        elif task_status == "Expired":
+            expired_tasks += 1
+
+    stat_fig2_label.config(text=f"Tasks completed: {completed_tasks}\n Tasks processing: {processing_tasks}\n Tasks expired: {expired_tasks}")
+
+
 def update_time():
     current_time = datetime.now().strftime('%H:%M')
     current_data = datetime.now().strftime('%A, %B %d, %Y')
@@ -271,8 +290,8 @@ def show_picked_date(event=None):
     else:
         cal_entry.config(fg="black")
 
-# APP
 
+# APP
 app = tk.Tk()
 app.title("Task Manager")
 app.geometry("1366x768")
@@ -320,8 +339,11 @@ stat_fig_frame = tk.Frame(right_frame, background="white")
 stat_fig1_label = tk.Label(stat_fig_frame, width=25, height=4, text=f"Tasks: 0", font=18, background="#50C878", fg="white")
 stat_fig1_label.grid(row=1, column=0, padx=15, pady=20, sticky=tk.W)
 
-stat_fig2_label = tk.Label(stat_fig_frame, width=25, height=4, text="Tasks done: 10", font=18, background="#50C878", fg="white")
+stat_fig2_label = tk.Label(stat_fig_frame, width=25, height=4, text="Tasks completed: ", font=18, background="#50C878", fg="white")
+# stat_fig2_label_2 = tk.Label(stat_fig_frame, width=25, height=4, text="Tasks processing: 10", font=18, background="#50C878", fg="white")
+# stat_fig2_label_3 = tk.Label(stat_fig_frame, width=25, height=4, text="Tasks expired: 10", font=18, background="#50C878", fg="white")
 stat_fig2_label.grid(row=1, column=1, padx=10, pady=20, sticky=tk.W)
+
 
 stat_fig3_label = tk.Label(stat_fig_frame, width=53, height=4, text="Current time: ", font=18, background="#50C878", fg="white")
 stat_fig3_label.grid(row=1, column=2, padx=10, pady=20, sticky=tk.W)
@@ -333,7 +355,7 @@ search_bar = ttk.Entry(search_bar_frame, width=30, font=18, background="white")
 search_bar.insert(tk.END, "Find a task")
 search_bar.grid(row=2, column=0, pady=10, padx=(15, 0), sticky=tk.W)
 
-filter_bar = ttk.Combobox(search_bar_frame, values=("Need to do", "Already done", "In process", "Expired"))
+filter_bar = ttk.Combobox(search_bar_frame, values=("Need to do", "Completed", "Processing", "Expired"))
 filter_bar_label = tk.Label(search_bar_frame, text="Filter by: ", background="white")
 filter_bar_label.grid(row=2, column=1, padx=(10, 0), pady=20, sticky=tk.W)
 filter_bar.grid(row=2, column=2, pady=10, sticky=tk.W)
@@ -344,7 +366,7 @@ sort_bar_label.grid(row=2, column=3, padx=(10, 0), pady=20, sticky=tk.W)
 sort_bar.grid(row=2, column=4, pady=10, sticky=tk.W)
 
 update_btn_img = ImageTk.PhotoImage(Image.open("update.png").resize((20, 20), Image.LANCZOS))
-update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=lambda: (load_tasks(), task_counter()))
+update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=lambda: (load_tasks(), task_counter(), tasks_status()))
 update_btn.grid(row=2, column=5, padx=15, pady=10, sticky=tk.W)
 search_bar_frame.pack(fill=tk.X)
 
@@ -372,6 +394,7 @@ treeview.bind('<Double-1>', on_treeview_click)
 load_tasks()
 
 task_counter()
+tasks_status()
 treeview.grid(row=3, column=0, columnspan=4, padx=(15, 0), pady=20)
 
 # Treeview scrollbar
@@ -410,13 +433,9 @@ status_frame = tk.Frame(create_task_frame, bg="#fafafa")
 status_frame_label = tk.Label(status_frame, text="Choose a task status:", font=("Helvetica", 12), bg="#fafafa")
 status_frame_label.grid(row=1, column=0, padx=10, pady=10)
 R1 = ttk.Radiobutton(status_frame, text="Need to do", value='Need to do', variable=status_var)
-R2 = ttk.Radiobutton(status_frame, text="Already done", value='Already done', variable=status_var)
-R3 = ttk.Radiobutton(status_frame, text="In process", value='In process', variable=status_var)
-R4 = ttk.Radiobutton(status_frame, text="Expired", value='Expired', variable=status_var)
+R3 = ttk.Radiobutton(status_frame, text="Processing", value='Processing', variable=status_var)
 R1.grid(row=1, column=1, padx=10, pady=10, sticky='ws')
-R2.grid(row=1, column=2, padx=10, pady=10, sticky='w')
 R3.grid(row=1, column=3, padx=10, pady=10, sticky='w')
-R4.grid(row=1, column=4, padx=10, pady=10, sticky='w')
 status_frame.pack(fill=tk.BOTH, expand=True, pady=(50, 0), padx=10)
 
 # Deadline Frame
