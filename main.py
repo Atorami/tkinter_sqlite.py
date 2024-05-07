@@ -271,6 +271,7 @@ def tasks_status():
     stat_fig1_label.config(text=f"Tasks: {task_number}")
     stat_fig2_label.config(text=f"Tasks completed: {completed_tasks}\n Tasks processing: {processing_tasks}\n Tasks expired: {expired_tasks}")
 
+###
 
 def update_time():
     current_time = datetime.now().strftime('%H:%M')
