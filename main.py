@@ -7,8 +7,7 @@ from tkinter import ttk
 from tkcalendar import Calendar
 from tktimepicker import SpinTimePickerModern
 from tktimepicker import constants
-from tkinter import filedialog
-from tkinter import messagebox
+
 
 from PIL import ImageTk, Image
 from datetime import datetime, date
@@ -70,6 +69,8 @@ def save_task():
 
 
 def load_tasks(filter_value, event=None):
+    if search_bar.get() != '' and search_bar.get() != 'Find a task':
+        print(search_bar.get())
     # Clear previous data
     for row in treeview.get_children():
         treeview.delete(row)
@@ -372,23 +373,26 @@ stat_fig_frame.pack(fill=tk.X)
 # Search bar and filters
 search_bar_frame = tk.Frame(right_frame, background="white")
 search_bar = ttk.Entry(search_bar_frame, width=30, font=18, background="white")
+search_bar_img = ImageTk.PhotoImage(Image.open("search.png").resize((20, 20), Image.LANCZOS))
+search_bar_btn = ttk.Button(search_bar_frame, image=search_bar_img, command=lambda: (load_tasks(filter_bar.get()), tasks_status()))
+search_bar_btn.grid(row=2, column=1, pady=10, sticky=tk.W)
 search_bar.insert(tk.END, "Find a task")
 search_bar.grid(row=2, column=0, pady=10, padx=(15, 0), sticky=tk.W)
 
 filter_bar = ttk.Combobox(search_bar_frame, values=("Need to do", "Completed", "Processing", "Expired"))
 filter_bar_label = tk.Label(search_bar_frame, text="Filter by: ", background="white")
 filter_bar.bind("<<ComboboxSelected>>", lambda event: load_tasks(filter_bar.get()))
-filter_bar_label.grid(row=2, column=1, padx=(10, 0), pady=20, sticky=tk.W)
-filter_bar.grid(row=2, column=2, pady=10, sticky=tk.W)
+filter_bar_label.grid(row=2, column=2, padx=(10, 0), pady=20, sticky=tk.W)
+filter_bar.grid(row=2, column=3, pady=10, sticky=tk.W)
 
 sort_bar = ttk.Combobox(search_bar_frame, values=("Id", "Alphabetic", "Status", "Date: Created", "Date: Deadline"))
 sort_bar_label = tk.Label(search_bar_frame, text="Sort by: ", background="white")
-sort_bar_label.grid(row=2, column=3, padx=(10, 0), pady=20, sticky=tk.W)
-sort_bar.grid(row=2, column=4, pady=10, sticky=tk.W)
+sort_bar_label.grid(row=2, column=4, padx=(10, 0), pady=20, sticky=tk.W)
+sort_bar.grid(row=2, column=5, pady=10, sticky=tk.W)
 
 update_btn_img = ImageTk.PhotoImage(Image.open("update.png").resize((20, 20), Image.LANCZOS))
 update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=lambda: (load_tasks(filter_bar.get()), tasks_status()))
-update_btn.grid(row=2, column=5, padx=15, pady=10, sticky=tk.W)
+update_btn.grid(row=2, column=6, padx=15, pady=10, sticky=tk.W)
 search_bar_frame.pack(fill=tk.X)
 
 # Treeview tasks
