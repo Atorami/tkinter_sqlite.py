@@ -69,7 +69,7 @@ def save_task():
     show_task_list()
 
 
-def load_tasks(filter_value):
+def load_tasks(filter_value, event=None):
     # Clear previous data
     for row in treeview.get_children():
         treeview.delete(row)
@@ -77,6 +77,7 @@ def load_tasks(filter_value):
     if filter_value != '':
         c.execute("SELECT * FROM tasks WHERE status LIKE ?", (filter_value,))
         tasks = c.fetchall()
+        # print(tasks)
     else:
         c.execute("SELECT * FROM tasks")
         tasks = c.fetchall()
@@ -85,10 +86,14 @@ def load_tasks(filter_value):
         curr_date = datetime.now().replace(second=0, microsecond=0)
         deadline_date = datetime.strptime(task[3], '%d/%m/%Y %H:%M')
         if curr_date > deadline_date:
+            #Update expired status in db
+            c.execute("UPDATE tasks SET status=? WHERE id=?", ("Expired", task[0]))
+            conn.commit()
             task = list(task)
             task[4] = "Expired"
             task = tuple(task)
             treeview.insert("", "end", values=task, tags=("expired",))
+
         else:
             treeview.insert("", "end", values=task)
 
@@ -300,10 +305,10 @@ def show_picked_date(event=None):
         cal_entry.config(fg="black")
 
 
-def use_filter(event):
-    filter_value = filter_bar.get()
-    if filter_value != '':
-        load_tasks(filter_value)
+# def use_filter(event):
+#     filter_value = filter_bar.get()
+#     if filter_value != '':
+#         load_tasks(filter_value)
 
 
 
@@ -372,7 +377,7 @@ search_bar.grid(row=2, column=0, pady=10, padx=(15, 0), sticky=tk.W)
 
 filter_bar = ttk.Combobox(search_bar_frame, values=("Need to do", "Completed", "Processing", "Expired"))
 filter_bar_label = tk.Label(search_bar_frame, text="Filter by: ", background="white")
-filter_bar.bind("<<ComboboxSelected>>", use_filter)
+filter_bar.bind("<<ComboboxSelected>>", lambda event: load_tasks(filter_bar.get()))
 filter_bar_label.grid(row=2, column=1, padx=(10, 0), pady=20, sticky=tk.W)
 filter_bar.grid(row=2, column=2, pady=10, sticky=tk.W)
 
