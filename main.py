@@ -68,39 +68,44 @@ def save_task():
     show_task_list()
 
 
-def load_tasks(filter_value, event=None):
-    if search_bar.get() != '' and search_bar.get() != 'Find a task':
-        print(search_bar.get())
+def load_tasks(event=None):
+    # Get filter and search values
+    filter_value = filter_bar.get()
+    search_val = search_bar.get().lower()
+
     # Clear previous data
     for row in treeview.get_children():
         treeview.delete(row)
 
-    if filter_value != '':
-        c.execute("SELECT * FROM tasks WHERE status LIKE ?", (filter_value,))
-        tasks = c.fetchall()
-        # print(tasks)
+    if search_val != '' and search_val != 'find a task':
+        c.execute("SELECT * FROM tasks WHERE task_name LIKE ?", ('%' + search_val + '%',))
     else:
-        c.execute("SELECT * FROM tasks")
-        tasks = c.fetchall()
+        if filter_value != '':
+            c.execute("SELECT * FROM tasks WHERE status LIKE ?", (filter_value,))
+        else:
+            c.execute("SELECT * FROM tasks")
+
+    tasks = c.fetchall()
 
     for task in tasks:
         curr_date = datetime.now().replace(second=0, microsecond=0)
         deadline_date = datetime.strptime(task[3], '%d/%m/%Y %H:%M')
         if curr_date > deadline_date:
-            #Update expired status in db
+            # Update expired status in the database
             c.execute("UPDATE tasks SET status=? WHERE id=?", ("Expired", task[0]))
             conn.commit()
             task = list(task)
             task[4] = "Expired"
             task = tuple(task)
             treeview.insert("", "end", values=task, tags=("expired",))
-
         else:
             treeview.insert("", "end", values=task)
 
     treeview.tag_configure("expired", foreground="red")
     treeview.bind("<Motion>", on_treeview_hover)
     treeview.bind("<Double-1>", on_treeview_click)
+
+
 
 
 def on_treeview_click(event):
@@ -277,6 +282,7 @@ def tasks_status():
     stat_fig1_label.config(text=f"Tasks: {task_number}")
     stat_fig2_label.config(text=f"Tasks completed: {completed_tasks}\n Tasks processing: {processing_tasks}\n Tasks expired: {expired_tasks}")
 
+
 ###
 
 def update_time():
@@ -374,7 +380,7 @@ stat_fig_frame.pack(fill=tk.X)
 search_bar_frame = tk.Frame(right_frame, background="white")
 search_bar = ttk.Entry(search_bar_frame, width=30, font=18, background="white")
 search_bar_img = ImageTk.PhotoImage(Image.open("search.png").resize((20, 20), Image.LANCZOS))
-search_bar_btn = ttk.Button(search_bar_frame, image=search_bar_img, command=lambda: (load_tasks(filter_bar.get()), tasks_status()))
+search_bar_btn = ttk.Button(search_bar_frame, image=search_bar_img, command=load_tasks)
 search_bar_btn.grid(row=2, column=1, pady=10, sticky=tk.W)
 search_bar.insert(tk.END, "Find a task")
 search_bar.grid(row=2, column=0, pady=10, padx=(15, 0), sticky=tk.W)
