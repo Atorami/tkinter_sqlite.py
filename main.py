@@ -23,6 +23,7 @@ class Task:
         self.deadline_date = deadline_date
         self.status = status
 
+
 # SQLite and Functions
 conn = sqlite3.connect('tasks.db')
 c = conn.cursor()
@@ -106,8 +107,6 @@ def load_tasks(event=None):
     treeview.bind("<Double-1>", on_treeview_click)
 
 
-
-
 def on_treeview_click(event):
     tree = event.widget
     item = tree.identify_row(event.y)
@@ -138,9 +137,10 @@ def show_task_info(task):
                 showinfo(title='Error', message='Please fill in all fields.')
                 return
 
-            c.execute('''UPDATE tasks 
-                                     SET task_name=?, deadline_date=?, status=? 
-                                     WHERE id=?''', (task_name, deadline_date, status, current_task.task_id))
+            c.execute(
+                '''UPDATE tasks 
+                 SET task_name=?, deadline_date=?, status=? WHERE id=?''',
+                (task_name, deadline_date, status, current_task.task_id))
             conn.commit()
 
             showinfo(title='Success', message='Task Completed!')
@@ -156,9 +156,10 @@ def show_task_info(task):
                 showinfo(title='Error', message='Please fill in all fields.')
                 return
 
-            c.execute('''UPDATE tasks 
-                         SET task_name=?, deadline_date=?, status=? 
-                         WHERE id=?''', (task_name, deadline_date, status, current_task.task_id))
+            c.execute(
+                '''UPDATE tasks 
+                 SET task_name=?, deadline_date=?, status=? WHERE id=?''',
+                (task_name, deadline_date, status, current_task.task_id))
             conn.commit()
 
             showinfo(title='Success', message='Task updated successfully!')
