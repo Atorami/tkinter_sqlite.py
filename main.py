@@ -27,7 +27,6 @@ class Task:
 # SQLite and Functions
 conn = sqlite3.connect('tasks.db')
 c = conn.cursor()
-
 c.execute('''CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY,
                 task_name TEXT NOT NULL,
@@ -36,6 +35,14 @@ c.execute('''CREATE TABLE IF NOT EXISTS tasks (
                  status TEXT NOT NULL
             )''')
 conn.commit()
+
+
+def clear_filters():
+    search_bar.delete(0, tk.END)
+    filter_bar.delete(0, tk.END)
+    sort_bar.delete(0, tk.END)
+    load_tasks()
+
 
 
 def save_task():
@@ -65,14 +72,15 @@ def save_task():
     conn.commit()
 
     showinfo(title='Success', message='Task added successfully!')
-    load_tasks(filter_bar.get())
+    load_tasks()
     show_task_list()
 
 
 def load_tasks(event=None):
     # Get filter and search values
-    filter_value = filter_bar.get()
     search_val = search_bar.get().lower()
+    filter_value = filter_bar.get().lower()
+    sort_val = sort_bar.get().lower()
 
     # Clear previous data
     for row in treeview.get_children():
@@ -145,7 +153,7 @@ def show_task_info(task):
 
             showinfo(title='Success', message='Task Completed!')
             tasks_status()
-            load_tasks(filter_bar.get())
+            load_tasks()
             back_to_task_list()
         else:
             task_name = current_task_name.get().strip()
@@ -164,7 +172,7 @@ def show_task_info(task):
 
             showinfo(title='Success', message='Task updated successfully!')
             tasks_status()
-            load_tasks(filter_bar.get())
+            load_tasks()
             back_to_task_list()
 
     def delete_task():
@@ -172,7 +180,7 @@ def show_task_info(task):
         conn.commit()
         showinfo(title='Success', message='Task deleted successfully!')
         tasks_status()
-        load_tasks(filter_bar.get())
+        load_tasks()
         back_to_task_list()
 
     def task_done():
@@ -388,7 +396,7 @@ search_bar.grid(row=2, column=0, pady=10, padx=(15, 0), sticky=tk.W)
 
 filter_bar = ttk.Combobox(search_bar_frame, values=("Need to do", "Completed", "Processing", "Expired"))
 filter_bar_label = tk.Label(search_bar_frame, text="Filter by: ", background="white")
-filter_bar.bind("<<ComboboxSelected>>", lambda event: load_tasks(filter_bar.get()))
+filter_bar.bind("<<ComboboxSelected>>", lambda event: load_tasks())
 filter_bar_label.grid(row=2, column=2, padx=(10, 0), pady=20, sticky=tk.W)
 filter_bar.grid(row=2, column=3, pady=10, sticky=tk.W)
 
@@ -398,8 +406,13 @@ sort_bar_label.grid(row=2, column=4, padx=(10, 0), pady=20, sticky=tk.W)
 sort_bar.grid(row=2, column=5, pady=10, sticky=tk.W)
 
 update_btn_img = ImageTk.PhotoImage(Image.open("update.png").resize((20, 20), Image.LANCZOS))
-update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=lambda: (load_tasks(filter_bar.get()), tasks_status()))
-update_btn.grid(row=2, column=6, padx=15, pady=10, sticky=tk.W)
+update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=load_tasks)
+update_btn.grid(row=2, column=6, padx=(15,5), pady=10, sticky=tk.W)
+
+
+clear_btn_img = ImageTk.PhotoImage(Image.open("close.png").resize((20, 20), Image.LANCZOS))
+clear_btn = ttk.Button(search_bar_frame, image=clear_btn_img, command=clear_filters)
+clear_btn.grid(row=2, column=7, pady=10, sticky=tk.W)
 search_bar_frame.pack(fill=tk.X)
 
 # Treeview tasks
@@ -423,7 +436,7 @@ treeview.tag_configure('highlight', background='lightblue')
 treeview.bind("<Motion>", on_treeview_hover)
 treeview.bind('<Double-1>', on_treeview_click)
 # Data from db
-load_tasks(filter_bar.get())
+load_tasks()
 tasks_status()
 treeview.grid(row=3, column=0, columnspan=4, padx=(15, 0), pady=20)
 
