@@ -46,15 +46,18 @@ class Database:
             self.c = self.conn.cursor()
 
     def save_task(self, task_name, creation_date, deadline_date, status):
-        if curr_date > deadline_date:
+        print(type(curr_date))
+        print(type(deadline_date))
+        if curr_date > datetime.strptime(deadline_date,'%d/%m/%Y %H:%M'):
             status = 'Expired'
         self.c.execute('''INSERT INTO tasks (task_name, creation_date, deadline_date, status)
                               VALUES (?, ?, ?, ?)''', (task_name, creation_date, deadline_date, status))
         self.conn.commit()
         showinfo(title='Success', message='Task saved')
+        load_tasks()
+        tasks_status()
 
     def change_task(self, task_id, task_name, creation_date, deadline_date, status):
-        print(task_id, task_name, creation_date, deadline_date, status)
         self.c.execute('''UPDATE tasks SET 
                                         task_name = ?, 
                                         creation_date = ?, 
