@@ -46,10 +46,23 @@ class Database:
             self.c = self.conn.cursor()
 
     def save_task(self, task_name, creation_date, deadline_date, status):
+        if curr_date > deadline_date:
+            status = 'Expired'
         self.c.execute('''INSERT INTO tasks (task_name, creation_date, deadline_date, status)
                               VALUES (?, ?, ?, ?)''', (task_name, creation_date, deadline_date, status))
         self.conn.commit()
         showinfo(title='Success', message='Task saved')
+
+    def change_task(self, task_id, task_name, creation_date, deadline_date, status):
+        print(task_id, task_name, creation_date, deadline_date, status)
+        self.c.execute('''UPDATE tasks SET 
+                                        task_name = ?, 
+                                        creation_date = ?, 
+                                        deadline_date = ?, 
+                                        status = ? 
+                                        WHERE id = ?''', (task_name, creation_date, deadline_date, status, task_id))
+        self.conn.commit()
+        showinfo(title='Success', message='Task updated')
 
     def update_task(self, task_id, status):
         self.c.execute("UPDATE tasks SET status=? WHERE id=?", (status, task_id))
@@ -131,12 +144,7 @@ def load_tasks(event=None):
     tasks = db.load_tasks(search_val, filter_value, sort_val)
 
     for task in tasks:
-        deadline_date = datetime.strptime(task[3], '%d/%m/%Y %H:%M')
-        if curr_date > deadline_date:
-            # Update expired status in the database
-            db.update_task(task[0], "Expired")
-            task = list(task)
-            task[4] = "Expired"
+        if task[4] == "Expired":
             task = tuple(task)
             treeview.insert("", "end", values=task, tags=("expired",))
         else:
@@ -173,11 +181,10 @@ def show_task_info(task):
         creation_date = current_task_creation_date.get()
 
         if done_var.get():
-            status = 'Completed'
+            status = "Completed"
         else:
             status = current_task_status.get()
-
-        db.save_task(task_name, creation_date, deadline_date, status)
+        db.change_task(current_task.task_id, task_name, creation_date, deadline_date, status)
         back_to_task_list()
 
     def delete_task():
@@ -195,6 +202,9 @@ def show_task_info(task):
             current_task_status.config(state=tk.NORMAL)
             current_task_deadline_date.config(state=tk.NORMAL)
             current_task_creation_date.config(state=tk.NORMAL)
+
+
+
 
     # Right Frame position
     right_frame.update_idletasks()
@@ -400,7 +410,7 @@ sort_bar.grid(row=2, column=5, pady=10, sticky=tk.W)
 
 update_btn_img = ImageTk.PhotoImage(Image.open("update.png").resize((20, 20), Image.LANCZOS))
 update_btn = ttk.Button(search_bar_frame, image=update_btn_img, command=load_tasks)
-update_btn.grid(row=2, column=6, padx=(15,5), pady=10, sticky=tk.W)
+update_btn.grid(row=2, column=6, padx=(15, 5), pady=10, sticky=tk.W)
 
 
 clear_btn_img = ImageTk.PhotoImage(Image.open("close.png").resize((20, 20), Image.LANCZOS))
