@@ -44,7 +44,6 @@ def clear_filters():
     load_tasks()
 
 
-
 def save_task():
     # Get all entry data
     task_name = task_name_entry.get().strip()
@@ -72,28 +71,48 @@ def save_task():
     conn.commit()
 
     showinfo(title='Success', message='Task added successfully!')
-    load_tasks()
+    load_tasks(filter_bar.get())
     show_task_list()
 
 
 def load_tasks(event=None):
-    # Get filter and search values
     search_val = search_bar.get().lower()
     filter_value = filter_bar.get().lower()
     sort_val = sort_bar.get().lower()
 
-    # Clear previous data
     for row in treeview.get_children():
         treeview.delete(row)
 
-    if search_val != '' and search_val != 'find a task':
-        c.execute("SELECT * FROM tasks WHERE task_name LIKE ?", ('%' + search_val + '%',))
-    else:
-        if filter_value != '':
-            c.execute("SELECT * FROM tasks WHERE status LIKE ?", (filter_value,))
-        else:
-            c.execute("SELECT * FROM tasks")
+    sql_query = "SELECT * FROM tasks"
 
+    conditions = []
+
+    if search_val:
+        conditions.append(f"task_name LIKE '%{search_val}%'")
+
+    if filter_value:
+        conditions.append(f"status LIKE '%{filter_value}%'")
+
+    if conditions:
+        sql_query += " WHERE " + " AND ".join(conditions)
+
+    # Sorting
+    if sort_val == '':
+        sql_query += " ORDER BY id DESC"
+    elif sort_val == "Id":
+        sql_query += " ORDER BY id ASC"
+    elif sort_val == "Alphabetic":
+        sql_query += " ORDER BY LOWER(task_name) COLLATE NOCASE"
+    elif sort_val == "Status":
+        sql_query += " ORDER BY status"
+    elif sort_val == "Date: Created":
+        sql_query += " ORDER BY creation_date ASC"
+    elif sort_val == "Date: Deadline":
+        sql_query += " ORDER BY deadline_date ASC"
+
+    print(sql_query)
+    # Execute the SQL query
+    c.execute(sql_query)
     tasks = c.fetchall()
 
     for task in tasks:
@@ -136,10 +155,13 @@ def show_task_info(task):
         info_box.destroy()
 
     def save_task():
+        task_name = current_task_name.get().strip()
+        deadline_date = current_task_deadline_date.get()
+        creation_date = current_task_creation_date.get()
         if done_var.get():
-            task_name = current_task_name.get().strip()
+
             status = 'Completed'
-            deadline_date = current_task_deadline_date.get()
+
 
             if not (task_name and status and deadline_date):
                 showinfo(title='Error', message='Please fill in all fields.')
@@ -147,8 +169,8 @@ def show_task_info(task):
 
             c.execute(
                 '''UPDATE tasks 
-                 SET task_name=?, deadline_date=?, status=? WHERE id=?''',
-                (task_name, deadline_date, status, current_task.task_id))
+                 SET task_name=?, creation_date=?, deadline_date=?, status=? WHERE id=?''',
+                (task_name, creation_date, deadline_date, status, current_task.task_id))
             conn.commit()
 
             showinfo(title='Success', message='Task Completed!')
@@ -156,9 +178,7 @@ def show_task_info(task):
             load_tasks()
             back_to_task_list()
         else:
-            task_name = current_task_name.get().strip()
             status = current_task_status.get()
-            deadline_date = current_task_deadline_date.get()
 
             if not (task_name and status and deadline_date):
                 showinfo(title='Error', message='Please fill in all fields.')
@@ -166,8 +186,8 @@ def show_task_info(task):
 
             c.execute(
                 '''UPDATE tasks 
-                 SET task_name=?, deadline_date=?, status=? WHERE id=?''',
-                (task_name, deadline_date, status, current_task.task_id))
+                 SET task_name=?, creation_date=?, deadline_date=?, status=? WHERE id=?''',
+                (task_name, creation_date, deadline_date, status, current_task.task_id))
             conn.commit()
 
             showinfo(title='Success', message='Task updated successfully!')
@@ -321,14 +341,6 @@ def show_picked_date(event=None):
         cal_entry.config(fg="black")
 
 
-# def use_filter(event):
-#     filter_value = filter_bar.get()
-#     if filter_value != '':
-#         load_tasks(filter_value)
-
-
-
-
 # APP
 app = tk.Tk()
 app.title("Task Manager")
@@ -391,7 +403,6 @@ search_bar = ttk.Entry(search_bar_frame, width=30, font=18, background="white")
 search_bar_img = ImageTk.PhotoImage(Image.open("search.png").resize((20, 20), Image.LANCZOS))
 search_bar_btn = ttk.Button(search_bar_frame, image=search_bar_img, command=load_tasks)
 search_bar_btn.grid(row=2, column=1, pady=10, sticky=tk.W)
-search_bar.insert(tk.END, "Find a task")
 search_bar.grid(row=2, column=0, pady=10, padx=(15, 0), sticky=tk.W)
 
 filter_bar = ttk.Combobox(search_bar_frame, values=("Need to do", "Completed", "Processing", "Expired"))
@@ -402,6 +413,7 @@ filter_bar.grid(row=2, column=3, pady=10, sticky=tk.W)
 
 sort_bar = ttk.Combobox(search_bar_frame, values=("Id", "Alphabetic", "Status", "Date: Created", "Date: Deadline"))
 sort_bar_label = tk.Label(search_bar_frame, text="Sort by: ", background="white")
+sort_bar.bind("<<ComboboxSelected>>", lambda event: load_tasks())
 sort_bar_label.grid(row=2, column=4, padx=(10, 0), pady=20, sticky=tk.W)
 sort_bar.grid(row=2, column=5, pady=10, sticky=tk.W)
 
