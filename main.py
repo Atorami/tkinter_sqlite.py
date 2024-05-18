@@ -3,6 +3,7 @@ from tkinter.messagebox import showinfo
 
 import sv_ttk
 import sqlite3
+import os.path
 from tkinter import ttk
 from tkcalendar import Calendar
 from tktimepicker import SpinTimePickerModern
@@ -12,8 +13,11 @@ from tktimepicker import constants
 from PIL import ImageTk, Image
 from datetime import datetime, date
 
+# Global variables
+curr_date = datetime.now().replace(second=0, microsecond=0)
 
 # Classes
+
 
 class Task:
     def __init__(self, task_id, task_name, created_date, deadline_date, status):
@@ -24,17 +28,65 @@ class Task:
         self.status = status
 
 
-# SQLite and Functions
-conn = sqlite3.connect('tasks.db')
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS tasks (
-                id INTEGER PRIMARY KEY,
-                task_name TEXT NOT NULL,
-               creation_date TEXT NOT NULL,
-                deadline_date TEXT NOT NULL,
-                 status TEXT NOT NULL
-            )''')
-conn.commit()
+class Database:
+    def __init__(self, db_name='tasks.db'):
+        if not os.path.exists(db_name):
+            self.conn = sqlite3.connect(db_name)
+            self.c = self.conn.cursor()
+            self.c.execute('''CREATE TABLE IF NOT EXISTS tasks (
+                                   id INTEGER PRIMARY KEY,
+                                   task_name TEXT NOT NULL,
+                                   creation_date TEXT NOT NULL,
+                                   deadline_date TEXT NOT NULL,
+                                   status TEXT NOT NULL
+                               )''')
+            self.conn.commit()
+        else:
+            self.conn = sqlite3.connect(db_name)
+            self.c = self.conn.cursor()
+
+    def save_task(self, task_name, creation_date, deadline_date, status):
+        self.c.execute('''INSERT INTO tasks (task_name, creation_date, deadline_date, status)
+                              VALUES (?, ?, ?, ?)''', (task_name, creation_date, deadline_date, status))
+        self.conn.commit()
+        showinfo(title='Success', message='Task saved')
+
+    def update_task(self, task_id, status):
+        self.c.execute("UPDATE tasks SET status=? WHERE id=?", (status, task_id))
+        self.conn.commit()
+
+    def delete_task(self, task_id):
+        self.c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
+        self.conn.commit()
+        showinfo(title='Success', message='Task deleted')
+
+    def load_tasks(self, search_val='', filter_value='', sort_val=''):
+        sql_query = "SELECT * FROM tasks"
+        conditions = []
+
+        if search_val:
+            conditions.append(f"task_name LIKE '%{search_val}%'")
+        if filter_value:
+            conditions.append(f"status LIKE '%{filter_value}%'")
+
+        if conditions:
+            sql_query += " WHERE " + " AND ".join(conditions)
+
+        sort_type = {
+            '': "id DESC",
+            'id': "id ASC",
+            'alphabetic': "task_name",
+            'status': "status",
+            'date: created': "creation_date ASC",
+            'date: deadline': "deadline_date ASC"
+        }
+
+        sql_query += " ORDER BY " + sort_type.get(sort_val, "id DESC")
+        self.c.execute(sql_query)
+        return self.c.fetchall()
+
+
+db = Database()
 
 
 def clear_filters():
@@ -64,14 +116,7 @@ def save_task():
 
     # Get current date and time
     creation_date = datetime.now().strftime('%d/%m/%Y %H:%M')
-
-    # Insert data into the database
-    c.execute('''INSERT INTO tasks (task_name, creation_date, deadline_date, status)
-                 VALUES (?, ?, ?, ?)''', (task_name, creation_date, deadline_date_formatted, status))
-    conn.commit()
-
-    showinfo(title='Success', message='Task added successfully!')
-    load_tasks(filter_bar.get())
+    db.save_task(task_name, creation_date, deadline_date_formatted, status)
     show_task_list()
 
 
@@ -83,45 +128,13 @@ def load_tasks(event=None):
     for row in treeview.get_children():
         treeview.delete(row)
 
-    sql_query = "SELECT * FROM tasks"
-
-    conditions = []
-
-    if search_val:
-        conditions.append(f"task_name LIKE '%{search_val}%'")
-
-    if filter_value:
-        conditions.append(f"status LIKE '%{filter_value}%'")
-
-    if conditions:
-        sql_query += " WHERE " + " AND ".join(conditions)
-
-    # Sorting
-    if sort_val == '':
-        sql_query += " ORDER BY id DESC"
-    elif sort_val == "Id":
-        sql_query += " ORDER BY id ASC"
-    elif sort_val == "Alphabetic":
-        sql_query += " ORDER BY LOWER(task_name) COLLATE NOCASE"
-    elif sort_val == "Status":
-        sql_query += " ORDER BY status"
-    elif sort_val == "Date: Created":
-        sql_query += " ORDER BY creation_date ASC"
-    elif sort_val == "Date: Deadline":
-        sql_query += " ORDER BY deadline_date ASC"
-
-    print(sql_query)
-    # Execute the SQL query
-    c.execute(sql_query)
-    tasks = c.fetchall()
+    tasks = db.load_tasks(search_val, filter_value, sort_val)
 
     for task in tasks:
-        curr_date = datetime.now().replace(second=0, microsecond=0)
         deadline_date = datetime.strptime(task[3], '%d/%m/%Y %H:%M')
         if curr_date > deadline_date:
             # Update expired status in the database
-            c.execute("UPDATE tasks SET status=? WHERE id=?", ("Expired", task[0]))
-            conn.commit()
+            db.update_task(task[0], "Expired")
             task = list(task)
             task[4] = "Expired"
             task = tuple(task)
@@ -139,7 +152,6 @@ def on_treeview_click(event):
     item = tree.identify_row(event.y)
     task = tree.item(item)['values']
     show_task_info(task)
-    # print(task)
 
 
 def show_task_info(task):
@@ -151,6 +163,7 @@ def show_task_info(task):
     # Task info functions
     def back_to_task_list():
         tasks_status()
+        load_tasks()
         show_task_list()
         info_box.destroy()
 
@@ -158,49 +171,17 @@ def show_task_info(task):
         task_name = current_task_name.get().strip()
         deadline_date = current_task_deadline_date.get()
         creation_date = current_task_creation_date.get()
+
         if done_var.get():
-
             status = 'Completed'
-
-
-            if not (task_name and status and deadline_date):
-                showinfo(title='Error', message='Please fill in all fields.')
-                return
-
-            c.execute(
-                '''UPDATE tasks 
-                 SET task_name=?, creation_date=?, deadline_date=?, status=? WHERE id=?''',
-                (task_name, creation_date, deadline_date, status, current_task.task_id))
-            conn.commit()
-
-            showinfo(title='Success', message='Task Completed!')
-            tasks_status()
-            load_tasks()
-            back_to_task_list()
         else:
             status = current_task_status.get()
 
-            if not (task_name and status and deadline_date):
-                showinfo(title='Error', message='Please fill in all fields.')
-                return
-
-            c.execute(
-                '''UPDATE tasks 
-                 SET task_name=?, creation_date=?, deadline_date=?, status=? WHERE id=?''',
-                (task_name, creation_date, deadline_date, status, current_task.task_id))
-            conn.commit()
-
-            showinfo(title='Success', message='Task updated successfully!')
-            tasks_status()
-            load_tasks()
-            back_to_task_list()
+        db.save_task(task_name, creation_date, deadline_date, status)
+        back_to_task_list()
 
     def delete_task():
-        c.execute("DELETE FROM tasks WHERE id=?", (current_task.task_id,))
-        conn.commit()
-        showinfo(title='Success', message='Task deleted successfully!')
-        tasks_status()
-        load_tasks()
+        db.delete_task(current_task.task_id)
         back_to_task_list()
 
     def task_done():
