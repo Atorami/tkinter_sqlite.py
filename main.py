@@ -46,12 +46,13 @@ class Database:
             self.c = self.conn.cursor()
 
     def save_task(self, task_name, creation_date, deadline_date, status):
-        print(type(curr_date))
-        print(type(deadline_date))
         if curr_date > datetime.strptime(deadline_date,'%d/%m/%Y %H:%M'):
             status = 'Expired'
-        self.c.execute('''INSERT INTO tasks (task_name, creation_date, deadline_date, status)
-                              VALUES (?, ?, ?, ?)''', (task_name, creation_date, deadline_date, status))
+        self.c.execute('''INSERT INTO tasks 
+                                (task_name, creation_date, deadline_date, status)
+                                VALUES (?, ?, ?, ?)''',
+                       (task_name, creation_date, deadline_date, status)
+                       )
         self.conn.commit()
         showinfo(title='Success', message='Task saved')
         load_tasks()
@@ -63,7 +64,9 @@ class Database:
                                         creation_date = ?, 
                                         deadline_date = ?, 
                                         status = ? 
-                                        WHERE id = ?''', (task_name, creation_date, deadline_date, status, task_id))
+                                        WHERE id = ?''',
+                       (task_name, creation_date, deadline_date, status, task_id)
+                       )
         self.conn.commit()
         showinfo(title='Success', message='Task updated')
 
@@ -136,7 +139,7 @@ def save_task():
     show_task_list()
 
 
-def load_tasks(event=None):
+def load_tasks():
     search_val = search_bar.get().lower()
     filter_value = filter_bar.get().lower()
     sort_val = sort_bar.get().lower()
@@ -361,8 +364,6 @@ menu_btn1 = tk.Button(menu_frame, text="Task list", width=30, height=2, fg='#50C
 menu_btn1.pack(padx=10)
 menu_btn2 = tk.Button(menu_frame, text="Task creator", width=30, height=2, fg='#50C878', bd=0, font=16, command=show_task_creator)
 menu_btn2.pack(padx=10, pady=10)
-menu_btn3 = tk.Button(menu_frame, text="Settings", width=30, height=2, fg='#50C878', bd=0, font=16)
-menu_btn3.pack(padx=10, pady=10)
 menu_frame.pack(pady=50)
 
 # Right frame
@@ -387,7 +388,7 @@ stat_fig2_label = tk.Label(stat_fig_frame, width=25, height=4, text="Tasks compl
 stat_fig2_label.grid(row=1, column=1, padx=10, pady=20, sticky=tk.W)
 
 
-stat_fig3_label = tk.Label(stat_fig_frame, width=53, height=4, text="Current time: ", font=18, background="#50C878", fg="white")
+stat_fig3_label = tk.Label(stat_fig_frame, width=52, height=4, text="Current time: ", font=18, background="#50C878", fg="white")
 stat_fig3_label.grid(row=1, column=2, padx=10, pady=20, sticky=tk.W)
 stat_fig_frame.pack(fill=tk.X)
 
@@ -441,9 +442,6 @@ treeview.column("Status", width=100, anchor=tk.CENTER)
 treeview.tag_configure('highlight', background='lightblue')
 treeview.bind("<Motion>", on_treeview_hover)
 treeview.bind('<Double-1>', on_treeview_click)
-# Data from db
-load_tasks()
-tasks_status()
 treeview.grid(row=3, column=0, columnspan=4, padx=(15, 0), pady=20)
 
 # Treeview scrollbar
@@ -452,7 +450,7 @@ treeview.configure(yscrollcommand=scrollbar.set)
 scrollbar.grid(row=3, column=4, sticky="ns", pady=20)
 treeview_frame.pack(fill=tk.BOTH, expand=True)
 
-update_time()
+
 
 # Create Task Frame
 
@@ -497,8 +495,7 @@ time_picker = SpinTimePickerModern(deadline_frame)
 time_picker_label = tk.Label(deadline_frame, text="Set a time: ", font=("Helvetica", 12), bg="white")
 time_picker_label.grid(row=1, column=0, padx=(10, 0), pady=10, sticky='w')
 time_picker.addAll(constants.HOURS24)
-time_picker.configureAll(bg="white", fg="#333333", font=("Arial", 12), hoverbg="#CCCCCC",
-                         hovercolor="#333333", clickedbg="#50C878", clickedcolor="white")
+time_picker.configureAll(bg="white", fg="#333333", font=("Arial", 12), hoverbg="#CCCCCC", hovercolor="#333333", clickedbg="#50C878", clickedcolor="white")
 time_picker.grid(row=1, column=1, columnspan=4, pady=10)
 deadline_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -526,9 +523,13 @@ create_button = ttk.Button(buttons_frame, text="Create", width=20, style="TButto
 create_button.grid(row=0, column=1, padx=10, pady=10)
 buttons_frame.pack(fill=tk.BOTH, expand=True, pady=(100, 10))
 
-
 create_task_frame.pack(fill=tk.BOTH, expand=True)
 
+load_tasks()
+tasks_status()
+update_time()
+
+show_task_list()
 
 sv_ttk.set_theme("light")
 app.mainloop()
